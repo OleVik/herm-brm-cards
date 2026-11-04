@@ -1,0 +1,24 @@
+{
+  "name": "herm-brm-cards",
+  "version": "1.0.0",
+  "description": "Build HERM Business Reference Model views and printable teaching cards (EN/NO) from Excel sources",
+  "type": "module",
+  "private": true,
+  "license": "CC-BY-NC-SA-4.0",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "node src/cli.js",
+    "build:html": "node src/cli.js --only-html",
+    "build:kit": "node src/cli.js --only-kit",
+    "build:pdf": "node src/cli.js --only-pdf"
+  },
+  "dependencies": {
+    "commander": "^15.0.0",
+    "exceljs": "^4.4.0",
+    "jspdf": "^4.2.1",
+    "pdfkit": "^0.20.2"
+  },
+  "packageManager": "yarn@3.3.0+sha512.16136ce2bbe4239c67bdb29c7af54918e0d8ef3029076bc4f30d32f5cdc35b6a081d8bff0ed404a32dc3da45f01bd7e0b9d12e83f1fc42638a3adc77115fafad"
+}

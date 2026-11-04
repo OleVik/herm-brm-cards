@@ -1,0 +1,1493 @@
+<!doctype html>
+<html lang="nb">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="herm-template-version" content="8" />
+    <title>HERM BRM __V__</title>
+    <style>
+      /* Palette: NTNU graphic profile. Each stream sets --hd (header), --l1 (L1 box), --bd (border). */
+      :root {
+        --bg: #fff;
+        --fg: #282d37;
+        --mut: #505862;
+        --ac: #00509e;
+        --l2: #fff;
+        --hit: #fdd9b5;
+        --hitbd: #ef8114;
+        --red: #d32f2f;
+        --sel: #fdf0c4;
+        --hd: #00509e;
+        --l1: #cfdaf1;
+        --bd: #9db7e1;
+        --a: 14px;
+      }
+      .s-lt {
+        --hd: #00509e;
+        --l1: #cfdaf1;
+        --bd: #9db7e1;
+      }
+      .s-res {
+        --hd: #2e7578;
+        --l1: #d1eaeb;
+        --bd: #97d2d4;
+      }
+      .s-ena {
+        --hd: #7d705a;
+        --l1: #eee5d5;
+        --bd: #e0d0af;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #161b26;
+          --fg: #e6e9f0;
+          --mut: #c3cada;
+          --ac: #9dbdec;
+          --l2: #1d2638;
+          --hit: #5a3a14;
+          --hitbd: #f4ac67;
+          --red: #ff6b6b;
+          --sel: #5a4a14;
+        }
+        .s-lt {
+          --hd: #3e628a;
+          --l1: #253a55;
+          --bd: #3e628a;
+        }
+        .s-res {
+          --hd: #2e7578;
+          --l1: #1f3a3c;
+          --bd: #2e7578;
+        }
+        .s-ena {
+          --hd: #7d705a;
+          --l1: #3d3732;
+          --bd: #7d705a;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        font:
+          13px/1.35 system-ui,
+          sans-serif;
+        margin: 0;
+        background: var(--bg);
+        color: var(--fg);
+      }
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 15;
+        background: var(--bg);
+        padding: 8px 14px;
+        border-bottom: 1px solid #9db7e1;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      h1 {
+        font-size: 16px;
+        margin: 0 8px 0 0;
+      }
+      button,
+      input {
+        font: inherit;
+        padding: 3px 9px;
+        border: 1px solid #9db7e1;
+        background: var(--l2);
+        color: var(--fg);
+        border-radius: 4px;
+      }
+      button.on {
+        background: #00509e;
+        color: #fff;
+      }
+      .legend {
+        color: var(--mut);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .legend i {
+        width: 14px;
+        height: 14px;
+        border: 2px solid var(--red);
+        border-radius: 3px;
+      }
+      main {
+        padding: 14px;
+      }
+      .ic {
+        display: inline-block;
+        min-width: 1.15em;
+        text-align: center;
+        font-style: normal;
+      }
+      .lic {
+        text-align: center;
+        font-size: 11px;
+        color: var(--mut);
+        padding: 8px 14px 18px;
+      }
+      .lic:empty {
+        display: none;
+      }
+      h2 {
+        font-size: 16px;
+        margin: 18px 0 6px;
+      }
+      .box {
+        border: 1px solid var(--bd);
+        border-radius: 4px;
+        padding: 6px;
+        margin-bottom: 12px;
+        width: 100%;
+      }
+      .chain {
+        display: grid;
+        gap: 6px;
+      }
+      /* block arrows: flow of the value stream */
+      .ph {
+        background: var(--hd);
+        color: #fff;
+        text-align: center;
+        font-weight: 600;
+        padding: 8px calc(var(--a) + 6px);
+        margin-right: calc(var(--a) * -0.6);
+        min-width: 0;
+        clip-path: polygon(
+          0 0,
+          calc(100% - var(--a)) 0,
+          100% 50%,
+          calc(100% - var(--a)) 100%,
+          0 100%,
+          var(--a) 50%
+        );
+      }
+      .ph.first {
+        padding-left: 10px;
+        clip-path: polygon(
+          0 0,
+          calc(100% - var(--a)) 0,
+          100% 50%,
+          calc(100% - var(--a)) 100%,
+          0 100%
+        );
+      }
+      .ph .sec {
+        color: #fff;
+      }
+      .l1 {
+        background: var(--l1);
+        border: 1px solid var(--bd);
+        border-radius: 3px;
+        padding: 5px;
+        min-width: 0;
+      }
+      .l1 > .t {
+        font-weight: 600;
+        font-size: 12.5px;
+        margin-bottom: 4px;
+        cursor: pointer;
+      }
+      .kids {
+        display: grid;
+        gap: 4px;
+        grid-template-columns: repeat(auto-fill, minmax(min(100%, 120px), 1fr));
+      }
+      .l2 {
+        background: var(--l2);
+        border: 1px solid var(--bd);
+        border-radius: 2px;
+        padding: 3px 4px;
+        cursor: pointer;
+        font-size: 11.5px;
+        min-width: 0;
+      }
+      .l1,
+      .l2,
+      .ph,
+      li {
+        overflow-wrap: break-word;
+        hyphens: auto;
+      }
+      .wrap {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .wrap .l1 {
+        flex: 1 1 320px;
+      }
+      .code {
+        color: var(--mut);
+        font-size: 10px;
+        display: block;
+      }
+      .sec {
+        color: var(--mut);
+        display: block;
+        font-size: 11px;
+        font-weight: 400;
+      }
+      .miss {
+        font-style: italic;
+      }
+      .missing {
+        border-color: var(--red) !important;
+        box-shadow: inset 0 0 0 1px var(--red);
+      }
+      li.missing {
+        border: 1px solid var(--red);
+        border-radius: 3px;
+        padding: 0 4px;
+      }
+      .bar {
+        flex-basis: 100%;
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        align-items: center;
+        border-top: 1px solid #9db7e1;
+        padding-top: 6px;
+      }
+      .bar select {
+        max-width: 260px;
+        font: inherit;
+        padding: 3px;
+        background: var(--l2);
+        color: var(--fg);
+        border: 1px solid #9db7e1;
+        border-radius: 4px;
+      }
+      .st {
+        color: var(--mut);
+      }
+      .st b {
+        color: var(--red);
+      }
+      .warn {
+        background: #fdd9b5;
+        color: #282d37;
+        padding: 4px 10px;
+        border-radius: 4px;
+        flex-basis: 100%;
+      }
+      .pri {
+        background: #00509e !important;
+        color: #fff !important;
+      }
+      .danger {
+        border-color: var(--red) !important;
+        color: var(--red);
+      }
+      .cb {
+        position: absolute;
+        top: 2px;
+        right: 2px;
+        margin: 0;
+        cursor: pointer;
+      }
+      .l1 > .t .cb {
+        position: static;
+        float: right;
+        margin: 1px 0 0 4px;
+      }
+      .l2 {
+        position: relative;
+        padding-right: 18px;
+      }
+      li .cb {
+        margin-right: 6px;
+        vertical-align: middle;
+      }
+      .sel {
+        background: var(--sel) !important;
+      }
+      li.sel {
+        border-radius: 3px;
+      }
+      dialog {
+        border: 1px solid #9db7e1;
+        border-radius: 6px;
+        padding: 16px 18px;
+        max-width: 480px;
+        width: calc(100% - 32px);
+        background: var(--bg);
+        color: var(--fg);
+      }
+      dialog::backdrop {
+        background: rgba(0, 0, 0, 0.4);
+      }
+      dialog h3 {
+        margin: 0 0 8px;
+      }
+      dialog input {
+        width: 100%;
+        margin: 6px 0 10px;
+      }
+      .btns {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+      .dim {
+        color: var(--mut);
+      }
+      .dim:not(.sel) {
+        background: transparent !important;
+      }
+      .part > .t {
+        color: var(--mut);
+      }
+      ::placeholder {
+        color: var(--mut);
+        opacity: 1;
+      }
+      .hit {
+        outline: 2px solid var(--hitbd);
+        background: var(--hit) !important;
+      }
+      details {
+        margin-left: 16px;
+      }
+      summary {
+        cursor: pointer;
+      }
+      button,
+      select,
+      summary,
+      input[type="checkbox"],
+      .cb,
+      .l2,
+      .l1 > .t,
+      li[data-c] {
+        cursor: pointer;
+      }
+      button:disabled {
+        cursor: not-allowed;
+      }
+      .help {
+        position: relative;
+      }
+      #ub {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .help > summary {
+        list-style: none;
+        padding: 3px 9px;
+        border: 1px solid #9db7e1;
+        border-radius: 4px;
+        background: var(--l2);
+        user-select: none;
+      }
+      .help > summary::-webkit-details-marker {
+        display: none;
+      }
+      .help[open] > summary {
+        background: #00509e;
+        color: #fff;
+      }
+      .hb {
+        position: absolute;
+        right: 0;
+        top: calc(100% + 6px);
+        width: min(620px, 92vw);
+        max-height: 70vh;
+        overflow: auto;
+        background: var(--bg);
+        border: 1px solid #9db7e1;
+        border-radius: 6px;
+        padding: 4px 16px 12px;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+        z-index: 20;
+        line-height: 1.45;
+      }
+      .hb h4 {
+        margin: 14px 0 4px;
+        color: var(--ac);
+      }
+      .hb p {
+        margin: 4px 0;
+      }
+      .hb ul {
+        margin: 4px 0;
+        padding-left: 18px;
+      }
+      .hb li {
+        list-style: disc;
+        margin: 3px 0;
+      }
+      li {
+        list-style: none;
+        margin: 1px 0;
+      }
+      #d {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: var(--bg);
+        border-top: 2px solid #00509e;
+        padding: 10px 14px;
+        display: none;
+        max-height: 45vh;
+        overflow: auto;
+        z-index: 9;
+      }
+      #d .c {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+      }
+      #d h3 {
+        margin: 2px 0;
+      }
+      #d small,
+      #d .sec {
+        color: var(--mut);
+      }
+      /* narrow screens: phases stack top to bottom with down-pointing arrows */
+      @media (max-width: 1000px) {
+        .chain {
+          grid-template-columns: minmax(0, 1fr) !important;
+        }
+        .chain > * {
+          grid-column: 1/-1 !important;
+          grid-row: auto !important;
+        }
+        .ph,
+        .ph.first {
+          margin: 0 0 -4px;
+          padding: 8px 10px calc(var(--a) + 4px);
+          clip-path: polygon(
+            0 0,
+            100% 0,
+            100% calc(100% - var(--a)),
+            50% 100%,
+            0 calc(100% - var(--a))
+          );
+        }
+        #d .c {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>HERM __V__ BRM</h1>
+      <span id="lb"></span><span id="vb"></span><input id="q" /><span
+        class="legend"
+        ><i></i><span id="mc"></span
+      ></span>
+      <span id="ub"></span>
+      <details class="help" id="help" hidden>
+        <summary id="hs"></summary>
+        <div class="hb" id="hb"></div>
+      </details>
+      <div class="bar" id="bar"></div>
+    </header>
+    <main id="m"></main>
+    <footer class="lic" id="lic"></footer>
+    <div id="d"></div>
+    <dialog id="dg"></dialog>
+    <input
+      type="file"
+      id="fi"
+      accept=".json,application/json"
+      hidden
+      onchange="impFile(this)"
+    />
+    <script>
+      __JSPDF__;
+    </script>
+    <script>
+      const M = __DATA__,
+        [P, S] = M.langs,
+        st = { lang: "both", ui: "EN", view: "diagram" }; // lang = content language (both/en/no); ui = interface language (EN/NO), independent. NB: not a global "lang": inline handlers resolve names on the element first
+      const cnt = {
+          NO: (n) => `${n} kapabilitet${n == 1 ? "" : "er"}`,
+          EN: (n) => `${n} ${n == 1 ? "capability" : "capabilities"}`,
+        },
+        cntSel = {
+          NO: (n) =>
+            `${n} ${n == 1 ? "valgt kapabilitet" : "valgte kapabiliteter"}`,
+          EN: (n) => `${n} selected ${n == 1 ? "capability" : "capabilities"}`,
+        };
+      const UI = {
+        NO: {
+          level: "Nivå",
+          parent: "overordnet",
+          textMissing: (L) => `[${L} tekst mangler]`,
+          missShort: (L) => `${L} mangler`,
+          core: "Kjerne",
+          enabling: "Muliggjørende",
+          savedList: "Lagrede utvalg",
+          contentLang: "Innholdsspråk",
+          uiLang: "Grensesnittspråk",
+          tipBoth: "Vis begge språk",
+          tipEn: "Vis engelsk",
+          tipNo: "Vis norsk",
+          search: "Søk kode / navn…",
+          missing: "mangler oversettelse",
+          diagram: "Diagram",
+          tree: "Tre",
+          close: "Lukk",
+          sel: "valgt",
+          select: "Velg",
+          deselect: "Fjern valg",
+          newOpt: "Nytt utvalg (ulagret)",
+          save: "Lagre",
+          saveAs: "Lagre som…",
+          fresh: "Nytt utvalg",
+          del: "Slett / tøm",
+          json: "Eksporter JSON",
+          pdf: "Eksporter PDF",
+          imp: "Importer JSON",
+          unsaved: "ulagrede endringer",
+          saved: "lagret",
+          dlgName: "Navn på utvalget",
+          defName: (n) => `Utvalg ${n}`,
+          cancel: "Avbryt",
+          warnTitle: "Lagre før du fortsetter?",
+          warn: (n, c) =>
+            `Du har ulagrede endringer i «${n}» (${cnt.NO(
+              c,
+            )}). Fortsetter du uten å lagre, går de tapt.`,
+          warnNoStore: (n, c) =>
+            `Du har ulagrede endringer i «${n}» (${cnt.NO(
+              c,
+            )}), og nettleseren tillater ikke lagring. Eksporter JSON først hvis du vil beholde dem.`,
+          saveGo: "Lagre og fortsett",
+          discard: "Forkast og fortsett",
+          clearTitle: "Tømme utvalget?",
+          clearMsg: (n) =>
+            `${cntSel.NO(
+              n,
+            )} fjernes fra utvalget. Utvalget er ikke lagret, så dette kan ikke angres.`,
+          savedTitle: (n) => `Tømme eller slette «${n}»?`,
+          savedMsg: (n, c) =>
+            c
+              ? `«${n}» har ${cntSel.NO(
+                  c,
+                )}. «Tøm utvalget» fjerner valgene, men beholder lagringen til du lagrer på nytt. «Slett lagret utvalg» fjerner lagringen fra denne nettleseren og tømmer utvalget. Ingen av delene kan angres.`
+              : `«${n}» slettes fra denne nettleseren. Det kan ikke angres.`,
+          clearBtn: "Tøm utvalget",
+          delBtn: "Slett lagret utvalg",
+          noStore:
+            "Nettleseren tillater ikke lagring (privat modus?). Du kan fortsatt eksportere utvalget.",
+          badFile: "Filen er ikke et gyldig utvalg.",
+          unknown: (n) =>
+            `${n} ${
+              n == 1 ? "ukjent kode ble" : "ukjente koder ble"
+            } hoppet over.`,
+          pdfTitle: "Valgte kapabiliteter",
+          pdfCount: (n) => cnt.NO(n),
+          noPdf: "PDF-biblioteket er ikke lastet.",
+          untitled: "Utvalg",
+        },
+        EN: {
+          level: "Level",
+          parent: "parent",
+          textMissing: (L) => `[${L} text missing]`,
+          missShort: (L) => `${L} missing`,
+          core: "Core",
+          enabling: "Enabling",
+          savedList: "Saved selections",
+          contentLang: "Content language",
+          uiLang: "Interface language",
+          tipBoth: "Show both languages",
+          tipEn: "Show English",
+          tipNo: "Show Norwegian",
+          search: "Search code / name…",
+          missing: "missing translation",
+          diagram: "Diagram",
+          tree: "Tree",
+          close: "Close",
+          sel: "selected",
+          select: "Select",
+          deselect: "Deselect",
+          newOpt: "New selection (unsaved)",
+          save: "Save",
+          saveAs: "Save as…",
+          fresh: "New selection",
+          del: "Delete / clear",
+          json: "Export JSON",
+          pdf: "Export PDF",
+          imp: "Import JSON",
+          unsaved: "unsaved changes",
+          saved: "saved",
+          dlgName: "Name of the selection",
+          defName: (n) => `Selection ${n}`,
+          cancel: "Cancel",
+          warnTitle: "Save before continuing?",
+          warn: (n, c) =>
+            `You have unsaved changes in "${n}" (${cnt.EN(
+              c,
+            )}). If you continue without saving they will be lost.`,
+          warnNoStore: (n, c) =>
+            `You have unsaved changes in "${n}" (${cnt.EN(
+              c,
+            )}), and the browser does not allow saving. Export JSON first if you want to keep them.`,
+          saveGo: "Save and continue",
+          discard: "Discard and continue",
+          clearTitle: "Clear the selection?",
+          clearMsg: (n) =>
+            `${cntSel.EN(
+              n,
+            )} will be removed from the selection. It is not saved, so this cannot be undone.`,
+          savedTitle: (n) => `Clear or delete "${n}"?`,
+          savedMsg: (n, c) =>
+            c
+              ? `"${n}" has ${cntSel.EN(
+                  c,
+                )}. "Clear selection" removes the ticks but keeps the save until you save again. "Delete saved selection" removes the save from this browser and clears the selection. Neither can be undone.`
+              : `"${n}" will be deleted from this browser. This cannot be undone.`,
+          clearBtn: "Clear selection",
+          delBtn: "Delete saved selection",
+          noStore:
+            "The browser does not allow saving (private mode?). You can still export the selection.",
+          badFile: "The file is not a valid selection.",
+          unknown: (n) =>
+            `${n} unknown ${n == 1 ? "code was" : "codes were"} skipped.`,
+          pdfTitle: "Selected capabilities",
+          pdfCount: (n) => cnt.EN(n),
+          noPdf: "The PDF library is not loaded.",
+          untitled: "Selection",
+        },
+      };
+      // Interface language is chosen independently of the content language (st.lang).
+      let T = UI.EN;
+      const uiLang = () => st.ui,
+        order = () =>
+          st.lang == "no"
+            ? ["NO", "EN"]
+            : st.lang == "en"
+              ? ["EN", "NO"]
+              : M.langs, // content order for the detail panel and the PDF export
+        setT = () => {
+          T = UI[uiLang()];
+          document.documentElement.lang = uiLang() == "NO" ? "nb" : "en";
+        },
+        lg = (L) => (L == "NO" ? "nb" : "en");
+      // Icons are decorative (aria-hidden); the text label carries the meaning.
+      const IC = {
+          lang: "🌐",
+          ui: "🖥️",
+          diagram: "🗺️",
+          tree: "🌳",
+          help: "ℹ️",
+          saves: "📁",
+          save: "💾",
+          saveAs: "📑",
+          fresh: "➕",
+          del: "🗑️",
+          imp: "📥",
+          json: "📤",
+          pdf: "📄",
+          close: "✖",
+          select: "☑️",
+          deselect: "⬜",
+          saveGo: "💾",
+          discard: "🚫",
+          cancel: "↩️",
+          clearBtn: "🧹",
+          delBtn: "🗑️",
+          ok: "✔",
+        },
+        ic_ = (g) => `<span class=ic aria-hidden="true">${g}</span>`,
+        ic = (k) => ic_(IC[k]),
+        ib = (k) => `${ic(k)} ${T[k]}`;
+      const h = (s) =>
+        String(s).replace(
+          /[&<>]/g,
+          (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c],
+        );
+      const idx = {};
+      (function w(o) {
+        if (o.code) idx[o.code] = o;
+        ["caps", "kids", "segments", "chains", "domains"].forEach((k) =>
+          (o[k] || []).forEach(w),
+        );
+      })({ domains: M.domains });
+      const nm = (o, L) => (L == "NO" ? o.no : o.en),
+        ds = (o, L) => (L == "NO" ? o.no_desc : o.en_desc);
+      const miss = (o) =>
+        !!o.code && ["NO", "EN"].some((L) => !nm(o, L) || !ds(o, L)); // a missing name or description in either language
+      const sc = (n) =>
+        n == "Research" ? "res" : n == "Enabling" ? "ena" : "lt";
+      function lab(o, c) {
+        const O = (L) => (L == "NO" ? "EN" : "NO"),
+          mk = (L, pri) =>
+            nm(o, L)
+              ? pri
+                ? `<b lang=${lg(L)}>${h(nm(o, L))}</b>`
+                : `<span class=sec lang=${lg(L)}>${h(nm(o, L))}</span>`
+              : pri
+                ? `<b class=miss lang=${lg(O(L))}>${h(nm(o, O(L)))}</b>`
+                : `<span class=sec><i>(${T.missShort(L)})</i></span>`;
+        const body =
+          st.lang == "en"
+            ? mk("EN", 1)
+            : st.lang == "no"
+              ? mk("NO", 1)
+              : mk(P, 1) + (S ? mk(S, 0) : "");
+        return (c ? `<span class=code>${o.code}</span>` : "") + body;
+      }
+      const mc = (o) => (miss(o) ? " missing" : "");
+      const cb = (o) =>
+        o.code
+          ? `<input type=checkbox class=cb data-k=${o.code} aria-label="${o.code}" onclick="event.stopPropagation()" onchange="tog('${o.code}',this.checked)">`
+          : "";
+      const l2 = (o) =>
+        `<div class="l2${mc(o)}" data-c=${o.code} onclick="show('${
+          o.code
+        }')">${cb(o)}${lab(o, 1)}</div>`;
+      const l1 = (o, style = "") =>
+        `<div class="l1${mc(o)}" data-c=${
+          o.code
+        } style="${style}"><div class=t onclick="show('${o.code}')">${cb(
+          o,
+        )}${lab(o, 1)}</div><div class=kids>${o.kids
+          .map(l2)
+          .join("")}</div></div>`;
+      // One grid per value stream; columns are "tile columns" (an L1 box is 1 or 2 wide), sized in fr so the stream always fills the page.
+      // Phases are block arrows in flow order; groups spanning Recruit..Confer sit beneath those phases only, so Design stays a single full-height column.
+      function chainHtml(c) {
+        const ph = c.segments.filter((x) => !x.span),
+          sp = c.segments.filter((x) => x.span);
+        const wd = (g) => g.caps.reduce((a, o) => a + o.cols, 0),
+          start = [];
+        let T = 1;
+        ph.forEach((g) => {
+          start.push(T);
+          T += wd(g);
+        });
+        T--;
+        let s = `<div class="chain box s-${sc(
+          c.en,
+        )}" style="grid-template-columns:repeat(${T},minmax(0,1fr))">`;
+        ph.forEach((g, i) => {
+          s += `<div class="ph${i ? "" : " first"}" style="grid-column:${
+            start[i]
+          }/span ${wd(g)};grid-row:1">${lab(g)}</div>`;
+          const cov = sp.some((x) => i >= x.range[0] && i <= x.range[1]);
+          let col = start[i];
+          g.caps.forEach((o) => {
+            s += l1(
+              o,
+              `grid-column:${col}/span ${o.cols};grid-row:2/span ${
+                cov ? 1 : 1 + sp.reduce((a, x) => a + x.caps.length, 0)
+              }`,
+            );
+            col += o.cols;
+          });
+        });
+        let row = 3;
+        sp.forEach((g) => {
+          const a = start[g.range[0]],
+            b = start[g.range[1]] + wd(ph[g.range[1]]);
+          g.caps.forEach((o) => {
+            s += l1(o, `grid-column:${a}/${b};grid-row:${row++}`);
+          });
+        });
+        return s + "</div>";
+      }
+      function diagram() {
+        let s = `<h2>${lab(M.domains[0])}</h2>`;
+        M.domains[0].chains.forEach((c) => {
+          s += `<h2>${lab(c)}</h2>` + chainHtml(c);
+        });
+        const e = M.domains[1];
+        return (
+          s +
+          `<h2>${lab(e)}</h2><div class="wrap box s-ena">${e.caps
+            .map((o) => l1(o))
+            .join("")}</div>`
+        );
+      }
+      function tree() {
+        const strip = (x) => lab(x).replace(/<span class=code>.*?<\/span>/, ""),
+          cd = (o) =>
+            o.code
+              ? `${cb(o)}<span class=code style=display:inline>${
+                  o.code
+                }</span> `
+              : "";
+        const node = (a) =>
+          "<ul>" +
+          a
+            .map((x) => {
+              const k = x.chains || x.segments || x.caps || x.kids,
+                dc = x.code ? ` data-c=${x.code}` : "";
+              return !k || !k.length
+                ? `<li class="${mc(x).trim()}"${dc} onclick="show('${
+                    x.code
+                  }')" style=cursor:pointer>${cd(x)}${strip(x)}</li>`
+                : `<li class="${mc(x).trim()}"${dc}><details open><summary>${cd(
+                    x,
+                  )}${strip(x)}</summary>${node(k)}</details></li>`;
+            })
+            .join("") +
+          "</ul>";
+        return node(M.domains);
+      }
+      let shown = null;
+      const closeD = () => {
+        shown = null;
+        document.getElementById("d").style.display = "none";
+      };
+      function show(c) {
+        shown = c;
+        const o = idx[c],
+          p = o.parent ? idx[o.parent] : null,
+          U = uiLang(),
+          ch = o.chain && M.domains[0].chains.find((x) => x.en == o.chain);
+        const blk = (L, pri) =>
+            `<div lang=${lg(L)}><h3 ${pri ? "" : "class=sec"}>${h(
+              nm(o, L) || "—",
+            )}</h3><p ${pri ? "" : "class=sec"}>${h(
+              ds(o, L) || T.textMissing(L),
+            )}</p></div>`,
+          [L1, L2] = order();
+        const meta = [
+          o.code,
+          `${T.level} ${o.level}`,
+          o.type == "Core" ? T.core : T.enabling,
+          ch && (ch[U.toLowerCase()] || ch.en),
+          (o.segment && (U == "NO" ? o.segNo : o.segEn)) || o.segment,
+          p && `${T.parent} ${p.code} ${nm(p, U) || p.en}`,
+        ]
+          .filter(Boolean)
+          .map(h)
+          .join(" · ");
+        d.innerHTML = `<small>${meta}</small> <button onclick="closeD()" style=float:right>${ib(
+          "close",
+        )}</button> <button class="${
+          cur.codes.has(c) ? "" : "pri"
+        }" onclick="tog('${c}',${!cur.codes.has(c)});show('${c}')">${
+          cur.codes.has(c) ? ib("deselect") : ib("select")
+        }</button>
+ <div class=c>${blk(L1, 1)}${blk(L2, 0)}</div>${
+   o.notes ? `<p class="sec" lang=en>${h(o.notes)}</p>` : ""
+ }`;
+        d.style.display = "block";
+      }
+      const setLang = (l) => {
+          st.lang = l;
+          render();
+        },
+        setView = (v) => {
+          st.view = v;
+          render();
+        },
+        setUi = (u) => {
+          st.ui = u;
+          render();
+        };
+      function render() {
+        setT();
+        m.innerHTML = st.view == "diagram" ? diagram() : tree();
+        const tip = { both: T.tipBoth, en: T.tipEn, no: T.tipNo };
+        lb.innerHTML =
+          `<span class=ic aria-hidden="true" title="${h(T.contentLang)}">${
+            IC.lang
+          }</span> ` +
+          [
+            ["both", P + (S ? " + " + S : "")],
+            ["en", "EN"],
+            ["no", "NO"],
+          ]
+            .map(
+              ([k, t]) =>
+                `<button class="${st.lang == k ? "on" : ""}" aria-pressed="${
+                  st.lang == k
+                }" title="${h(tip[k])}" onclick="setLang('${k}')">${t}</button>`,
+            )
+            .join(" ");
+        ub.setAttribute("role", "group");
+        ub.setAttribute("aria-label", T.uiLang);
+        ub.innerHTML =
+          `<span class=ic aria-hidden="true" title="${h(T.uiLang)}">${
+            IC.ui
+          }</span> ` +
+          ["EN", "NO"]
+            .map(
+              (u) =>
+                `<button class="${st.ui == u ? "on" : ""}" aria-pressed="${
+                  st.ui == u
+                }" title="${h(T.uiLang)}" onclick="setUi('${u}')">${u}</button>`,
+            )
+            .join(" ");
+        vb.innerHTML = [
+          ["diagram", T.diagram],
+          ["tree", T.tree],
+        ]
+          .map(
+            ([k, t]) =>
+              `<button class="${st.view == k ? "on" : ""}" aria-pressed="${
+                st.view == k
+              }" onclick="setView('${k}')">${ic(k)} ${t}</button>`,
+          )
+          .join(" ");
+        const nm_ = Object.values(idx).filter(miss).length;
+        mc_.textContent = `${T.missing} (${nm_})`;
+        mc_.parentElement.style.display = nm_ ? "" : "none";
+        q.placeholder = "🔍 " + T.search;
+        renderHelp();
+        applySel();
+        bar();
+        filter();
+        if (shown && document.getElementById("d").style.display === "block")
+          show(shown);
+      }
+      const mc_ = document.getElementById("mc");
+      document.getElementById("lic").textContent = M.license || "";
+      // "About the model": explanation from config.js (M.help), in the interface language; re-rendered when the language changes
+      function renderHelp() {
+        const hp = M.help && M.help[uiLang()];
+        if (!hp) return;
+        document.getElementById("hs").innerHTML = `${ic("help")} ${h(
+          hp.title,
+        )}`;
+        document.getElementById("hb").innerHTML =
+          `<div lang=${lg(uiLang())}>` +
+          hp.sections
+            .map(
+              (x) =>
+                `<h4>${h(x.title)}</h4>` +
+                (x.paras || []).map((t) => `<p>${h(t)}</p>`).join("") +
+                (x.items
+                  ? `<ul>${x.items
+                      .map((t) => `<li>${h(t)}</li>`)
+                      .join("")}</ul>`
+                  : ""),
+            )
+            .join("") +
+          "</div>";
+        document.getElementById("help").hidden = false;
+      }
+      // Esc: a modal dialog handles it itself; otherwise close the help menu first, then the detail panel. A click outside closes the help menu.
+      addEventListener("keydown", (e) => {
+        if (e.key !== "Escape" || document.getElementById("dg").open) return;
+        const hp = document.getElementById("help"),
+          dp = document.getElementById("d");
+        if (hp.open) hp.open = false;
+        else if (dp.style.display === "block") closeD();
+      });
+      addEventListener("click", (e) => {
+        const hp = document.getElementById("help");
+        if (hp.open && !hp.contains(e.target)) hp.open = false;
+      });
+      // Search: matches get .hit; their ancestors .part (title softened, box stays readable); the rest .dim. Ancestors are never dimmed (opacity can't be undone by a child).
+      function filter() {
+        const t = q.value.trim().toLowerCase(),
+          hit = new Set(),
+          part = new Set();
+        if (t)
+          Object.values(idx).forEach((o) => {
+            if (`${o.code} ${o.en} ${o.no}`.toLowerCase().includes(t)) {
+              hit.add(o.code);
+              o.kids.forEach((k) => part.add(k.code));
+              for (let p = o.parent; p; p = idx[p].parent) part.add(p);
+            }
+          });
+        document.querySelectorAll("[data-c]").forEach((e) => {
+          const c = e.dataset.c,
+            hh = hit.has(c),
+            pp = !hh && part.has(c);
+          e.classList.toggle("hit", hh);
+          e.classList.toggle(
+            "part",
+            pp && idx[c].kids.length > 0 && !hit.has(idx[c].parent),
+          );
+          e.classList.toggle("dim", !!t && !hh && !pp);
+        });
+      }
+      q.oninput = filter;
+      // ===== Selection: working state, named saves in localStorage, export/import =====
+      // cur = the selection being edited; store.saves = named snapshots; the draft (cur) is also persisted so a reload loses nothing.
+      const KEY = "herm-brm:selections:v1";
+      let store = { saves: [], draft: null },
+        storageOK = true;
+      try {
+        localStorage.setItem(KEY + ":t", "1");
+        localStorage.removeItem(KEY + ":t");
+        store = Object.assign(
+          store,
+          JSON.parse(localStorage.getItem(KEY) || "{}"),
+        );
+      } catch (e) {
+        storageOK = false;
+      }
+      const known = (a) => (a || []).filter((c) => idx[c]);
+      let cur = { id: null, name: "", codes: new Set() };
+      if (store.draft) {
+        const sv = store.saves.find((x) => x.id == store.draft.id);
+        cur = {
+          id: sv ? sv.id : null,
+          name: store.draft.name || "",
+          codes: new Set(known(store.draft.codes)),
+        };
+      }
+      const same = (a, b) => a.size == b.size && [...a].every((x) => b.has(x));
+      const saveOf = (id) => store.saves.find((x) => x.id == id);
+      const dirty = () => {
+        const s = cur.id && saveOf(cur.id);
+        return s ? !same(cur.codes, new Set(s.codes)) : cur.codes.size > 0;
+      };
+      const curName = () =>
+        (cur.id && saveOf(cur.id)?.name) || cur.name || T.untitled;
+      function persist() {
+        store.draft = { id: cur.id, name: cur.name, codes: [...cur.codes] };
+        if (!storageOK) return;
+        try {
+          localStorage.setItem(KEY, JSON.stringify(store));
+        } catch (e) {
+          storageOK = false;
+          bar();
+        }
+      }
+      function applySel() {
+        document
+          .querySelectorAll("[data-c]")
+          .forEach((e) =>
+            e.classList.toggle("sel", cur.codes.has(e.dataset.c)),
+          );
+        document
+          .querySelectorAll(".cb")
+          .forEach((e) => (e.checked = cur.codes.has(e.dataset.k)));
+      }
+      function tog(c, on) {
+        on ? cur.codes.add(c) : cur.codes.delete(c);
+        persist();
+        applySel();
+        bar();
+      }
+      function bar() {
+        const o = store.saves
+          .map(
+            (x) =>
+              `<option value="${x.id}"${x.id == cur.id ? " selected" : ""}>${h(
+                x.name,
+              )} (${x.codes.length})</option>`,
+          )
+          .join("");
+        const st_ = dirty()
+          ? `<b>● ${T.unsaved}</b>`
+          : cur.id
+            ? `✓ ${T.saved}`
+            : "";
+        document.getElementById("bar").innerHTML =
+          (storageOK ? "" : `<div class=warn>${T.noStore}</div>`) +
+          `${ic("saves")} <select aria-label="${
+            T.savedList
+          }" onchange="act('sw',this.value)">${
+            cur.id ? "" : `<option value="" selected>${T.newOpt}</option>`
+          }${o}</select>
+  <button class=pri onclick="act('save')"${storageOK ? "" : " disabled"}>${ib(
+    "save",
+  )}</button><button onclick="act('saveAs')"${
+    storageOK ? "" : " disabled"
+  }>${ib("saveAs")}</button>
+  <button onclick="act('fresh')">${ib(
+    "fresh",
+  )}</button><button class=danger onclick="act('del')"${
+    cur.id || cur.codes.size ? "" : " disabled"
+  }>${ib("del")}</button>
+  <span class=st>${cur.codes.size} ${T.sel}${st_ ? " · " + st_ : ""}</span>
+  <span style="margin-left:auto"></span><button onclick="act('imp')">${ib(
+    "imp",
+  )}</button><button onclick="act('json')">${ib(
+    "json",
+  )}</button><button onclick="act('pdf')">${ib("pdf")}</button>`;
+      }
+      function ask({ title, msg, input, buttons }) {
+        return new Promise((res) => {
+          dg.innerHTML = `<form method=dialog><h3>${h(title)}</h3>${
+            msg ? `<p>${h(msg)}</p>` : ""
+          }${
+            input != null
+              ? `<input id=dn value="${h(input)}" maxlength=60>`
+              : ""
+          }
+  <div class=btns>${buttons
+    .map(
+      (b, i) =>
+        `<button value=${i} class="${b.cls || ""}">${
+          b.ic ? ic_(b.ic) + " " : ""
+        }${h(b.label)}</button>`,
+    )
+    .join("")}</div></form>`;
+          dg.returnValue = "";
+          dg.onclose = () => {
+            const n = document.getElementById("dn"),
+              i = dg.returnValue === "" ? -1 : +dg.returnValue;
+            res({ i, text: n ? n.value : "" });
+          };
+          dg.showModal();
+          const n = document.getElementById("dn");
+          if (n) n.select();
+        });
+      }
+      async function save() {
+        let s = cur.id && saveOf(cur.id);
+        if (!s) {
+          const r = await ask({
+            title: T.dlgName,
+            input: cur.name || T.defName(store.saves.length + 1),
+            buttons: [
+              { label: T.save, ic: IC.save, cls: "pri" },
+              { label: T.cancel, ic: IC.cancel },
+            ],
+          });
+          if (r.i !== 0) return false;
+          s = {
+            id: Date.now().toString(36),
+            name: r.text.trim() || T.defName(store.saves.length + 1),
+            codes: [],
+            updated: 0,
+          };
+          store.saves.push(s);
+          cur.id = s.id;
+          cur.name = s.name;
+        }
+        s.codes = [...cur.codes];
+        s.updated = Date.now();
+        persist();
+        bar();
+        return true;
+      }
+      async function saveAs() {
+        const r = await ask({
+          title: T.dlgName,
+          input: `${curName()}${cur.id ? " (2)" : ""}`,
+          buttons: [
+            { label: T.save, ic: IC.save, cls: "pri" },
+            { label: T.cancel, ic: IC.cancel },
+          ],
+        });
+        if (r.i !== 0) return;
+        const s = {
+          id: Date.now().toString(36),
+          name: r.text.trim() || T.defName(store.saves.length + 1),
+          codes: [...cur.codes],
+          updated: Date.now(),
+        };
+        store.saves.push(s);
+        cur.id = s.id;
+        cur.name = s.name;
+        persist();
+        bar();
+      }
+      // Any action that would replace the working selection first checks for unsaved changes.
+      async function guard() {
+        if (!dirty()) return true;
+        const r = await ask({
+          title: T.warnTitle,
+          msg: (storageOK ? T.warn : T.warnNoStore)(curName(), cur.codes.size),
+          buttons: [
+            ...(storageOK
+              ? [{ label: T.saveGo, ic: IC.saveGo, cls: "pri" }]
+              : []),
+            { label: T.discard, ic: IC.discard, cls: "danger" },
+            { label: T.cancel, ic: IC.cancel },
+          ],
+        });
+        if (r.i < 0) return false;
+        const k = storageOK ? r.i : r.i + 1;
+        return k === 0 ? await save() : k === 1;
+      }
+      async function fresh() {
+        if (await guard()) {
+          cur = { id: null, name: "", codes: new Set() };
+          persist();
+          render();
+        } else bar();
+      }
+      async function switchTo(id) {
+        if (!id || id == cur.id) return bar();
+        if (await guard()) {
+          const s = saveOf(id);
+          cur = { id: s.id, name: s.name, codes: new Set(known(s.codes)) };
+          persist();
+          render();
+        } else bar();
+      }
+      // Delete / clear (always confirmed): an unsaved selection can be cleared; a saved one can be cleared (save kept) or deleted (save removed too).
+      function clearSel() {
+        cur.codes.clear();
+        persist();
+        applySel();
+        bar();
+      }
+      async function del() {
+        const s = cur.id && saveOf(cur.id),
+          n = cur.codes.size;
+        if (!s && !n) return;
+        if (!s) {
+          const r = await ask({
+            title: T.clearTitle,
+            msg: T.clearMsg(n),
+            buttons: [
+              { label: T.clearBtn, ic: IC.clearBtn, cls: "danger" },
+              { label: T.cancel, ic: IC.cancel },
+            ],
+          });
+          if (r.i === 0) clearSel();
+          return;
+        }
+        const b = [
+          ...(n
+            ? [
+                {
+                  label: T.clearBtn,
+                  ic: IC.clearBtn,
+                  cls: "danger",
+                  k: "clear",
+                },
+              ]
+            : []),
+          { label: T.delBtn, ic: IC.delBtn, cls: "danger", k: "del" },
+          { label: T.cancel, ic: IC.cancel, k: "no" },
+        ];
+        const r = await ask({
+            title: T.savedTitle(s.name),
+            msg: T.savedMsg(s.name, n),
+            buttons: b,
+          }),
+          k = r.i < 0 ? "no" : b[r.i].k;
+        if (k === "clear") clearSel();
+        else if (k === "del") {
+          store.saves = store.saves.filter((x) => x != s);
+          cur = { id: null, name: "", codes: new Set() };
+          persist();
+          render();
+        }
+      }
+      const acts = {
+        save,
+        saveAs,
+        fresh,
+        del,
+        sw: switchTo,
+        imp: () => document.getElementById("fi").click(),
+        json: exportJson,
+        pdf: exportPdf,
+      };
+      const act = (n, v) => acts[n](v);
+      addEventListener("beforeunload", (e) => {
+        if (dirty()) {
+          e.preventDefault();
+          e.returnValue = "";
+        }
+      });
+      // ---- export / import ----
+      const slug = (s) =>
+          s
+            .toLowerCase()
+            .replace(/æ/g, "ae")
+            .replace(/ø/g, "o")
+            .normalize("NFKD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-|-$/g, "") || "utvalg",
+        today = () => new Date().toISOString().slice(0, 10);
+      function download(blob, name) {
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = name;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+      }
+      // selected nodes in model order, with context for the PDF
+      function ordered() {
+        const out = [],
+          push = (o, stream, key, seg) => {
+            if (cur.codes.has(o.code)) out.push({ o, stream, key, seg });
+            o.kids.forEach((k) => push(k, stream, key, seg));
+          };
+        for (const c of M.domains[0].chains) {
+          const key = c.en == "Research" ? "res" : "lt";
+          [
+            ...c.segments.filter((s) => !s.span),
+            ...c.segments.filter((s) => s.span),
+          ].forEach((g) => g.caps.forEach((o) => push(o, c, key, g)));
+        }
+        M.domains[1].caps.forEach((o) => push(o, M.domains[1], "ena", null));
+        return out;
+      }
+      function exportJson() {
+        const rows = ordered(),
+          name = curName();
+        const data = {
+          schema: "herm-brm-selection/1",
+          hermVersion: M.version,
+          name,
+          exportedAt: new Date().toISOString(),
+          license: M.license || undefined,
+          count: rows.length,
+          codes: rows.map((r) => r.o.code),
+          capabilities: rows.map(({ o }) => ({
+            code: o.code,
+            level: o.level,
+            parent: o.parent || null,
+            name: { NO: o.no, EN: o.en },
+            description: { NO: o.no_desc, EN: o.en_desc },
+          })),
+        };
+        download(
+          new Blob([JSON.stringify(data, null, 2)], {
+            type: "application/json",
+          }),
+          `herm-brm-${slug(name)}-${today()}.json`,
+        );
+      }
+      async function impFile(inp) {
+        const f = inp.files[0];
+        inp.value = "";
+        if (!f) return;
+        let d;
+        try {
+          d = JSON.parse(await f.text());
+          if (!d || d.schema?.split("/")[0] != "herm-brm-selection") throw 0;
+        } catch (e) {
+          await ask({
+            title: T.badFile,
+            buttons: [{ label: "OK", ic: IC.ok, cls: "pri" }],
+          });
+          return;
+        }
+        const all = d.codes || (d.capabilities || []).map((c) => c.code),
+          ok = known(all);
+        if (!(await guard())) return;
+        cur = {
+          id: null,
+          name: d.name || f.name.replace(/\.json$/i, ""),
+          codes: new Set(ok),
+        };
+        persist();
+        render();
+        if (ok.length < all.length)
+          await ask({
+            title: T.unknown(all.length - ok.length),
+            buttons: [{ label: "OK", ic: IC.ok, cls: "pri" }],
+          });
+      }
+      function exportPdf() {
+        const lib = window.jspdf;
+        if (!lib) {
+          alert(T.noPdf);
+          return;
+        }
+        const [P, S] = order();
+        const doc = new lib.jsPDF({ unit: "mm", format: "a4" }),
+          Mg = 15,
+          Wd = 210 - 2 * Mg;
+        let y = Mg;
+        const L = (s) =>
+          String(s)
+            .replace(/[\u2013\u2014]/g, "-")
+            .replace(/[\u2018\u2019]/g, "'")
+            .replace(/[\u201c\u201d]/g, '"')
+            .replace(/\u2026/g, "...")
+            .replace(/\u00a0/g, " ")
+            .replace(/[^\x00-\xff]/g, "?");
+        const put = (t, size, style, rgb, gap = 0, ind = 0) => {
+          doc.setFont("helvetica", style);
+          doc.setFontSize(size);
+          doc.setTextColor(...rgb);
+          const lh = size * 0.3528 * 1.3;
+          doc.splitTextToSize(L(t), Wd - ind).forEach((l) => {
+            if (y + lh > 297 - Mg - 6) {
+              doc.addPage();
+              y = Mg;
+            }
+            doc.text(l, Mg + ind, y + lh * 0.8);
+            y += lh;
+          });
+          y += gap;
+        };
+        const RGB = {
+            lt: [0, 80, 158],
+            res: [46, 117, 120],
+            ena: [125, 112, 90],
+          },
+          GREY = [107, 115, 125],
+          INK = [40, 45, 55],
+          rows = ordered(),
+          sec = P == "NO" ? "NO" : P,
+          sec2 = S;
+        put(curName(), 18, "bold", RGB.lt, 1);
+        put(
+          `${T.pdfTitle} · HERM ${M.version} · ${today()} · ${T.pdfCount(
+            rows.length,
+          )}`,
+          9,
+          "normal",
+          GREY,
+          5,
+        );
+        let last = null;
+        for (const { o, stream, key, seg } of rows) {
+          if (stream !== last) {
+            last = stream;
+            y += 2;
+            put(nm(stream, P) || stream.en, 12, "bold", RGB[key], 0.5);
+            doc.setDrawColor(...RGB[key]);
+            doc.line(Mg, y, Mg + Wd, y);
+            y += 2.5;
+          }
+          const p = o.parent ? idx[o.parent] : null,
+            where = [
+              seg ? (P == "NO" ? o.segNo || seg.no : o.segEn || seg.en) : "",
+              p ? `${p.code} ${nm(p, P) || p.en}` : "",
+            ]
+              .filter(Boolean)
+              .join("  >  ");
+          put(
+            `${o.code}  ${nm(o, P) || nm(o, P == "NO" ? "EN" : "NO")}`,
+            10.5,
+            "bold",
+            INK,
+            0,
+          );
+          if (where) put(where, 7.5, "normal", GREY, 0.6);
+          const t = ds(o, P) || "[" + P + " text missing]";
+          put(t, 9, "normal", INK, 0.8);
+          if (S) {
+            put(`${nm(o, S) || "[" + S + " missing]"}`, 8.5, "bold", GREY, 0);
+            put(ds(o, S) || "", 8, "normal", GREY, 0.8);
+          }
+          y += 2.5;
+        }
+        const n = doc.getNumberOfPages();
+        for (let i = 1; i <= n; i++) {
+          doc.setPage(i);
+          doc.setFontSize(7);
+          doc.setTextColor(...GREY);
+          doc.text(
+            L(`HERM ${M.version} · ${curName()} · ${i}/${n}`),
+            Mg,
+            297 - 8,
+          );
+          if (M.license)
+            doc.text(L(M.license), 210 - Mg, 297 - 8, { align: "right" });
+        }
+        doc.save(`herm-brm-${slug(curName())}-${today()}.pdf`);
+      }
+      render();
+    </script>
+  </body>
+</html>
