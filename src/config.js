@@ -3,7 +3,7 @@ export const VERSION = "3.2.0";
 // Licence line, shown discreetly at the bottom of index.html and in its PDF/JSON export.
 export const LICENSE = "CC BY-NC-SA 4.0 © 2025 CAUDIT";
 // Bump together with src/template.html (<meta name="herm-template-version">). The build refuses a mismatched template.
-export const TEMPLATE_VERSION = 8;
+export const TEMPLATE_VERSION = 9;
 
 export const DOMAINS = {
   Core: { id: "BD001", en: "Core capabilities", no: "Kjernekapabiliteter" },

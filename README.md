@@ -99,7 +99,7 @@ Layout:
 - Below 1000 px the phases stack top to bottom, and all text wraps.
 - A capability missing a name or description in either language gets a red border. The header shows the count, and hides it when nothing is missing.
 - Search highlights matches and keeps their parent boxes readable. Non-matching items lose their fill and show muted text; text is never faded with opacity.
-- The licence line from `LICENSE` in `src/config.js` is shown as small muted text at the bottom of the page, in the footer of every page of the PDF export, and as a `license` field in the JSON export.
+- The licence line from `LICENSE` in `src/config.js` is shown as small muted text at the bottom of the page, in the footer of every page of the A4 export, and as a `license` field in the JSON export.
 - Text colours meet WCAG 2.x level AA (at least 4.5:1) in both light and dark mode, on every background the page uses: plain, the three stream tints, selected, highlighted and warning.
   - The colour tokens are at the top of the `<style>` block in `src/template.html` (`--fg`, `--mut`, `--ac`).
   - `python3 tools/audit-contrast.py` re-checks every visible text element across the UI states (needs Python and Playwright, and is not part of the Node build).
@@ -111,7 +111,7 @@ Interface language and icons:
   - Norwegian while _NO_ is selected.
   - Open popups and the detail panel update immediately when the toggle changes.
 - The order of the content follows the toggle too: _NO + EN_ uses `--language-priorities`, _EN_ shows English first, _NO_ shows Norwegian first.
-- Every button has an emoji or Unicode icon next to its label, for example 💾 Save, 📑 Save as…, ➕ New selection, 🗑️ Delete / clear, 📥 Import, 📤 Export JSON, 📄 Export PDF.
+- Every button has an emoji or Unicode icon next to its label, for example 💾 Save, 📑 Save as…, ➕ New selection, 🗑️ Delete / clear, 📥 Import, 📤 Export JSON, 📄 Export A4, 📄 Export A3.
   - The icons are decorative (`aria-hidden`); the text label carries the meaning. They are defined in `IC` in `src/template.html`.
 - Norwegian and English texts are tagged `lang="nb"` and `lang="en"`, so hyphenation and screen readers treat each correctly.
 - Interface strings are in the `UI` object in `src/template.html` (one set per language). The _About the model_ text is in `HELP` in `src/config.js`.
@@ -152,9 +152,12 @@ Unsaved-changes guard:
 
 Export and import:
 
-- Export the current selection, saved or not, as JSON or as PDF.
+- Export the current selection, saved or not, as JSON, A4 PDF or A3 PDF.
   - JSON uses the schema `herm-brm-selection/1`: the codes, plus names and descriptions in both languages.
-  - PDF is grouped by value stream, with breadcrumbs and descriptions.
+  - _Export A4_ lists the selection grouped by value stream, with breadcrumbs and descriptions.
+  - _Export A3_ fills in the capability map (`A-poster-A3.pdf`): same layout as the printed poster, with the selected capabilities ticked and highlighted, and the selection name and today's date in the header fields.
+  - Files are named `YYYY-MM-DD <name> A4.pdf`, `YYYY-MM-DD <name> A3.pdf` and `YYYY-MM-DD <name>.json`, where `<name>` is the selection's name (saved or imported) or `HERM-BRM` when it has none, for example `2026-11-16 HERM-BRM A3.pdf`. Characters not allowed in file names become `-`.
+  - Both PDFs follow the content-language toggle. The A3 layout is computed in the browser from the embedded model; the palette and poster labels come from `src/config.js` at build time, so `model.json` is not involved.
 - Import reads that JSON back. Unknown codes are skipped and reported.
 
 ## Source layout

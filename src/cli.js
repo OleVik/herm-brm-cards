@@ -7,7 +7,17 @@ import { Command, InvalidArgumentError, Option } from "commander";
 import { buildModel, qaReport } from "./model.js";
 import { buildPdfs } from "./pdf.js";
 import { buildKit } from "./kit.js";
-import { SEGMENTS, CHAINS, TEMPLATE_VERSION, HELP, LICENSE } from "./config.js";
+import {
+  SEGMENTS,
+  CHAINS,
+  TEMPLATE_VERSION,
+  HELP,
+  LICENSE,
+  STREAM_COLORS,
+  INK,
+  MUTED,
+  LABELS,
+} from "./config.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
@@ -130,10 +140,24 @@ const steps = {
         }, this build needs ${TEMPLATE_VERSION}). ` +
           "Older templates lack selection, saving, import and export. Replace src/template.html with the latest one (or unzip the full source).",
       );
+    // Page-only extras (not in model.json): help text, licence, and the palette/labels the A3 poster export draws with.
+    const pick = (keys) =>
+      Object.fromEntries(
+        Object.entries(LABELS).map(([L, o]) => [
+          L,
+          Object.fromEntries(keys.map((k) => [k, o[k]])),
+        ]),
+      );
     const json = JSON.stringify({
       ...model,
       help: HELP,
       license: LICENSE,
+      poster: {
+        colors: STREAM_COLORS,
+        ink: INK,
+        muted: MUTED,
+        labels: pick(["posterTitle", "name", "date", "missingName"]),
+      },
     }).replace(/</g, "\\u003c");
     const jspdf = await loadJsPdf();
     await fs.writeFile(

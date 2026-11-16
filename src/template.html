@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <meta name="herm-template-version" content="8" />
+    <meta name="herm-template-version" content="9" />
     <title>HERM BRM __V__</title>
     <style>
       /* Palette: NTNU graphic profile. Each stream sets --hd (header), --l1 (L1 box), --bd (border). */
@@ -551,7 +551,8 @@
           fresh: "Nytt utvalg",
           del: "Slett / tøm",
           json: "Eksporter JSON",
-          pdf: "Eksporter PDF",
+          pdf: "Eksporter A4",
+          pdfA3: "Eksporter A3",
           imp: "Importer JSON",
           unsaved: "ulagrede endringer",
           saved: "lagret",
@@ -622,7 +623,8 @@
           fresh: "New selection",
           del: "Delete / clear",
           json: "Export JSON",
-          pdf: "Export PDF",
+          pdf: "Export A4",
+          pdfA3: "Export A3",
           imp: "Import JSON",
           unsaved: "unsaved changes",
           saved: "saved",
@@ -694,6 +696,7 @@
           imp: "📥",
           json: "📤",
           pdf: "📄",
+          pdfA3: "📄",
           close: "✖",
           select: "☑️",
           deselect: "⬜",
@@ -1109,7 +1112,9 @@
     "imp",
   )}</button><button onclick="act('json')">${ib(
     "json",
-  )}</button><button onclick="act('pdf')">${ib("pdf")}</button>`;
+  )}</button><button onclick="act('pdf')">${ib(
+    "pdf",
+  )}</button><button onclick="act('pdfA3')">${ib("pdfA3")}</button>`;
       }
       function ask({ title, msg, input, buttons }) {
         return new Promise((res) => {
@@ -1283,6 +1288,7 @@
         imp: () => document.getElementById("fi").click(),
         json: exportJson,
         pdf: exportPdf,
+        pdfA3: exportPosterPdf,
       };
       const act = (n, v) => acts[n](v);
       addEventListener("beforeunload", (e) => {
@@ -1292,16 +1298,23 @@
         }
       });
       // ---- export / import ----
-      const slug = (s) =>
-          s
-            .toLowerCase()
-            .replace(/æ/g, "ae")
-            .replace(/ø/g, "o")
-            .normalize("NFKD")
-            .replace(/[\u0300-\u036f]/g, "")
-            .replace(/[^a-z0-9]+/g, "-")
-            .replace(/^-|-$/g, "") || "utvalg",
-        today = () => new Date().toISOString().slice(0, 10);
+      // local date (not UTC), so an export just after midnight gets the right day
+      const today = () => {
+          const d = new Date(),
+            p = (n) => String(n).padStart(2, "0");
+          return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+        },
+        // "YYYY-MM-DD <name> [A3|A4].<ext>"; <name> is the selection's own name (saved or imported), else "HERM-BRM".
+        // Characters that Windows/macOS forbid in file names become "-".
+        fileName = (ext, size) => {
+          const name =
+            ((cur.id && saveOf(cur.id)?.name) || cur.name || "")
+              .replace(/[\\/:*?"<>|\x00-\x1f]+/g, "-")
+              .replace(/\s+/g, " ")
+              .trim()
+              .replace(/[. ]+$/, "") || "HERM-BRM";
+          return `${today()} ${name}${size ? " " + size : ""}.${ext}`;
+        };
       function download(blob, name) {
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
@@ -1351,7 +1364,7 @@
           new Blob([JSON.stringify(data, null, 2)], {
             type: "application/json",
           }),
-          `herm-brm-${slug(name)}-${today()}.json`,
+          fileName("json"),
         );
       }
       async function impFile(inp) {
@@ -1385,6 +1398,15 @@
             buttons: [{ label: "OK", ic: IC.ok, cls: "pri" }],
           });
       }
+      // jsPDF's built-in Helvetica covers Latin-1 only: map typographic characters, replace the rest
+      const pdfSafe = (s) =>
+        String(s)
+          .replace(/[\u2013\u2014]/g, "-")
+          .replace(/[\u2018\u2019]/g, "'")
+          .replace(/[\u201c\u201d]/g, '"')
+          .replace(/\u2026/g, "...")
+          .replace(/\u00a0/g, " ")
+          .replace(/[^\x00-\xff]/g, "?");
       function exportPdf() {
         const lib = window.jspdf;
         if (!lib) {
@@ -1396,14 +1418,7 @@
           Mg = 15,
           Wd = 210 - 2 * Mg;
         let y = Mg;
-        const L = (s) =>
-          String(s)
-            .replace(/[\u2013\u2014]/g, "-")
-            .replace(/[\u2018\u2019]/g, "'")
-            .replace(/[\u201c\u201d]/g, '"')
-            .replace(/\u2026/g, "...")
-            .replace(/\u00a0/g, " ")
-            .replace(/[^\x00-\xff]/g, "?");
+        const L = pdfSafe;
         const put = (t, size, style, rgb, gap = 0, ind = 0) => {
           doc.setFont("helvetica", style);
           doc.setFontSize(size);
@@ -1485,7 +1500,306 @@
           if (M.license)
             doc.text(L(M.license), 210 - Mg, 297 - 8, { align: "right" });
         }
-        doc.save(`herm-brm-${slug(curName())}-${today()}.pdf`);
+        doc.save(fileName("pdf", "A4"));
+      }
+      // ===== A3 export: the workshop capability map (A-poster-A3.pdf, drawn by src/kit.js), filled in =====
+      // Same layout as the printed poster (same fit search, same boxes), drawn with jsPDF; the selection is ticked
+      // and highlighted, and the name and date fields are filled in. Units: mm; font sizes in pt.
+      // BEGIN A3 POSTER
+      function drawPosterPdf(lib, { P, S, sel, name, date, footer }) {
+        const K = M.poster,
+          PT = 25.4 / 72,
+          LH = 1.306, // pdfkit Helvetica line height incl. the 0.15 line gap used by the poster
+          ASC = 0.718, // Helvetica ascender: pdfkit places the baseline this far below the text top
+          RED = "#d32f2f",
+          SEL = "#fdf0c4",
+          MG = 6,
+          GAP = 0.8,
+          PAD = 1,
+          TITLE = 6,
+          CHEV = 6.5,
+          HEAD = 5.5,
+          HEADER = 12,
+          FOOT = 5,
+          W2 = 420 - 2 * MG,
+          MINTW = 27;
+        const doc = new lib.jsPDF({
+          orientation: "landscape",
+          unit: "mm",
+          format: "a3",
+        });
+        doc.setProperties({
+          title: `HERM BRM ${M.version} - ${name}`,
+          subject: M.license || "",
+        });
+        const FS = { r: "normal", b: "bold", i: "italic" },
+          colOf = (o) => K.colors[o.stream] || K.colors.Enabling,
+          font = (f, z) => {
+            doc.setFont("helvetica", f);
+            doc.setFontSize(z);
+          },
+          tw = (t, f, z) => (font(f, z), doc.getTextWidth(t));
+        // one line, shrunk to fit w (then cut with an ellipsis); y = top of the text
+        function oneLine(t, { x, y, w, f = "r", size, min = 4, color, align = "left" }) {
+          t = pdfSafe(t);
+          let s = size;
+          while (s > min && tw(t, FS[f], s) > w) s -= 0.25;
+          if (tw(t, FS[f], s) > w) {
+            while (t.length > 1 && tw(t + "...", FS[f], s) > w) t = t.slice(0, -1);
+            t += "...";
+          }
+          font(FS[f], s);
+          doc.setTextColor(color);
+          const ax = align == "center" ? x + w / 2 : align == "right" ? x + w : x;
+          doc.text(t, ax, y + ASC * s * PT, { align, baseline: "alphabetic" });
+        }
+        const lines = (t, f, z, w) => (font(f, z), doc.splitTextToSize(t, w));
+        // wrapped text at a fixed size, cut at height h; returns the height used
+        function block(t, { x, y, w, h, f, size, color }) {
+          const ls = lines(t, f, size, w),
+            lh = size * LH * PT,
+            n = Math.max(1, Math.min(ls.length, Math.floor((h + 0.01) / lh)));
+          const out = ls.slice(0, n);
+          if (n < ls.length) {
+            let l = out[n - 1];
+            while (l.length > 1 && tw(l + "...", f, size) > w) l = l.slice(0, -1);
+            out[n - 1] = l + "...";
+          }
+          font(f, size);
+          doc.setTextColor(color);
+          out.forEach((l, i) =>
+            doc.text(l, x, y + i * lh + ASC * size * PT, { baseline: "alphabetic" }),
+          );
+          return Math.min(ls.length * lh, h);
+        }
+        const style = (o, L, pri) => {
+          const t = L == "NO" ? o.no : o.en;
+          return t
+            ? { t: pdfSafe(t), f: pri ? FS.b : FS.r, color: pri ? K.ink : K.muted }
+            : { t: pdfSafe(K.labels[L].missingName), f: FS.i, color: K.muted };
+        };
+        // primary name (bold) with the secondary name muted beneath; shrinks until it fits and no word is broken
+        function nameBlock(o, { x, y, w, h, max, min, prefix = "" }) {
+          const a = style(o, P, true),
+            b = S && style(o, S, false);
+          a.t = prefix + a.t;
+          const H = (p, z) => lines(p.t, p.f, z, w).length * z * LH * PT,
+            wide = (p, z) => Math.max(...p.t.split(/\s+/).map((q) => tw(q, p.f, z)));
+          let s = max;
+          const bad = () =>
+            H(a, s) + (b ? H(b, s * 0.75) + PT : 0) > h ||
+            wide(a, s) > w ||
+            (b && wide(b, s * 0.75) > w);
+          while (s > min && bad()) s -= 0.2;
+          const used = block(a.t, { x, y, w, h, f: a.f, size: s, color: a.color });
+          if (b && h - used - PT > 0)
+            block(b.t, { x, y: y + used + PT, w, h: h - used - PT, f: b.f, size: s * 0.75, color: b.color });
+        }
+        const tickBox = (x, y, c, on) => {
+          doc.setLineWidth(0.4 * PT).setDrawColor(c.dark);
+          if (on) {
+            doc.setFillColor("#fff").rect(x, y, 2.3, 2.3, "FD");
+            doc.setLineWidth(0.9 * PT).lines([[0.5, 0.55], [1, -1.3]], x + 0.45, y + 1.15, [1, 1], "S");
+          } else doc.rect(x, y, 2.3, 2.3, "S");
+        };
+        const poly = (pts, color) =>
+          doc
+            .setFillColor(color)
+            .lines(pts.slice(1).map((p, i) => [p[0] - pts[i][0], p[1] - pts[i][1]]), pts[0][0], pts[0][1], [1, 1], "F", true);
+        function chevrons({ x, y, w, h, items, weights, c, fs }) {
+          const notch = h * 0.28,
+            gap = 1.2,
+            tot = weights.reduce((p, q) => p + q, 0),
+            usable = w - (notch - gap),
+            cells = [];
+          let acc = 0;
+          items.forEach((it, i) => {
+            const a = x + (usable * acc) / tot;
+            acc += weights[i];
+            const cr = x + (usable * acc) / tot,
+              bx = cr + notch - gap;
+            cells.push({ x: a, w: cr - a });
+            const pts = [[a, y], [bx - notch, y], [bx, y + h / 2], [bx - notch, y + h], [a, y + h]];
+            if (i > 0) pts.push([a + notch, y + h / 2]);
+            poly(pts, c.light);
+            const tx = a + (i > 0 ? notch : 0) + 1,
+              tww = bx - a - notch * (i > 0 ? 2 : 1) - 2,
+              h1 = fs * 1.2 * PT,
+              h2 = it.S ? fs * 0.62 * 1.2 * PT : 0,
+              ty = y + (h - h1 - h2) / 2;
+            oneLine(it.P, { x: tx, y: ty, w: tww, f: "b", size: fs, color: K.ink, align: "center" });
+            if (h2) oneLine(it.S, { x: tx, y: ty + h1, w: tww, size: fs * 0.62, color: K.muted, align: "center" });
+          });
+          return cells;
+        }
+        // ---- layout plan: identical to streamPlan / enablingPlan in src/kit.js ----
+        const boxH = (k, n, th) => PAD + TITLE + Math.ceil(k / n) * th + (Math.ceil(k / n) - 1) * GAP + PAD;
+        function streamPlan(chain, th) {
+          const ph = chain.segments.filter((s) => !s.span),
+            sp = chain.segments.filter((s) => s.span),
+            wd = (g) => g.caps.reduce((a, o) => a + o.cols, 0),
+            units = (a, b) => ph.slice(a, b + 1).reduce((q, g) => q + wd(g), 0),
+            covered = (i) => sp.some((g) => i >= g.range[0] && i <= g.range[1]),
+            spanH = sp.map((g) => g.caps.map((o) => boxH(o.kids.length, units(...g.range), th))),
+            spanTotal = spanH.flat().reduce((a, v) => a + v + GAP, 0);
+          let rowH = 0,
+            free = 0;
+          ph.forEach((g, i) =>
+            g.caps.forEach((o) => {
+              const h = boxH(o.kids.length, o.cols, th);
+              if (covered(i)) rowH = Math.max(rowH, h);
+              else free = Math.max(free, h);
+            }),
+          );
+          rowH = Math.max(rowH, free - spanTotal);
+          return { ph, sp, wd, units, covered, spanH, spanTotal, rowH, height: CHEV + 1.5 + rowH + spanTotal };
+        }
+        function enablingPlan(caps, th, nc) {
+          const bw = (W2 - (nc - 1) * GAP) / nc,
+            tpr = Math.max(1, Math.floor((bw - 2 * PAD + GAP) / (MINTW + GAP))),
+            cols = Array(nc).fill(0);
+          const sized = caps.map((o, i) => ({ o, i, h: boxH(o.kids.length, tpr, th) })).sort((a, b) => b.h - a.h);
+          sized.forEach((b) => {
+            b.c = cols.indexOf(Math.min(...cols));
+            cols[b.c] += b.h + GAP;
+          });
+          const run = Array(nc).fill(0);
+          const placed = sized
+            .slice()
+            .sort((a, b) => a.i - b.i)
+            .map((b) => {
+              const y = run[b.c];
+              run[b.c] += b.h + GAP;
+              return { o: b.o, c: b.c, y, h: b.h };
+            });
+          return { bw, tpr, placed, height: Math.max(...cols) - GAP };
+        }
+        // ---- drawing ----
+        function tile(o, x, y, w, h) {
+          const c = colOf(o),
+            m = miss(o),
+            on = sel.has(o.code);
+          doc
+            .setLineWidth((m || on ? 0.9 : 0.3) * PT)
+            .setDrawColor(m ? RED : on ? c.dark : c.mid)
+            .setFillColor(on ? SEL : "#fff")
+            .roundedRect(x, y, w, h, 0.8, 0.8, "FD");
+          oneLine(o.code, { x: x + 1, y: y + 0.7, w: 12, f: "b", size: 4.6, color: c.dark });
+          tickBox(x + w - 3.1, y + 0.8, c, on);
+          nameBlock(o, { x: x + 1, y: y + 3.4, w: w - 2, h: h - 3.9, max: 6.4, min: 4 });
+        }
+        function box(o, x, y, w, h, n, th) {
+          const c = colOf(o),
+            m = miss(o),
+            on = sel.has(o.code);
+          doc
+            .setLineWidth((m ? 0.9 : on ? 1.2 : 0.4) * PT)
+            .setDrawColor(m ? RED : on ? c.dark : c.mid)
+            .setFillColor(c.light)
+            .roundedRect(x, y, w, h, 1, 1, "FD");
+          if (on) doc.setFillColor(SEL).rect(x + 0.3, y + 0.3, w - 0.6, TITLE + PAD - 0.5, "F");
+          tickBox(x + w - (PAD + 2.6), y + PAD, c, on);
+          nameBlock(o, { x: x + PAD + 0.3, y: y + PAD, w: w - (2 * PAD + 3.2), h: TITLE - 0.4, max: 6.8, min: 4.2, prefix: `${o.code}  ` });
+          const kw = (w - 2 * PAD - (n - 1) * GAP) / n,
+            ty = y + PAD + TITLE;
+          o.kids.forEach((k, i) =>
+            tile(k, x + PAD + (i % n) * (kw + GAP), ty + Math.floor(i / n) * (th + GAP), kw, th),
+          );
+        }
+        const lab = (o) => ({ P: o[P.toLowerCase()], S: S && o[S.toLowerCase()] });
+        function stream(chain, y0, th) {
+          const c = K.colors[chain.en],
+            pl = streamPlan(chain, th);
+          // phase arrows show the primary language only, as on the printed poster
+          const cells = chevrons({ x: MG, y: y0, w: W2, h: CHEV, c, fs: 7.5, items: pl.ph.map((g) => ({ P: lab(g).P })), weights: pl.ph.map(pl.wd) });
+          const yRow = y0 + CHEV + 1.5;
+          pl.ph.forEach((g, i) => {
+            let off = 0;
+            const total = pl.wd(g);
+            g.caps.forEach((o) => {
+              const x = cells[i].x + (off / total) * cells[i].w,
+                w = (o.cols / total) * cells[i].w - GAP;
+              box(o, x, yRow, w, pl.covered(i) || !pl.sp.length ? pl.rowH : pl.rowH + pl.spanTotal - GAP, o.cols, th);
+              off += o.cols;
+            });
+          });
+          let yy = yRow + pl.rowH + GAP;
+          pl.sp.forEach((g, gi) =>
+            g.caps.forEach((o, k) => {
+              const x0 = cells[g.range[0]].x,
+                x1 = cells[g.range[1]].x + cells[g.range[1]].w - GAP;
+              box(o, x0, yy, x1 - x0, pl.spanH[gi][k], pl.units(...g.range), th);
+              yy += pl.spanH[gi][k] + GAP;
+            }),
+          );
+        }
+        function heading(o, key, y) {
+          const l = lab(o),
+            c = K.colors[key];
+          oneLine(l.P, { x: MG, y, w: 200, f: "b", size: 9, color: c.dark });
+          if (l.S) oneLine(l.S, { x: MG + tw(pdfSafe(l.P), FS.b, 9) + 2, y: y + PT, w: 200, size: 7, color: K.muted });
+        }
+        const chains = M.domains[0].chains,
+          ena = M.domains[1],
+          avail = 297 - 2 * MG - FOOT - HEADER;
+        let best = null;
+        for (let th = 15; th >= 8.5 && !best; th -= 0.25)
+          for (const nc of [4, 5, 6, 7, 8]) {
+            const e = enablingPlan(ena.caps, th, nc),
+              total = chains.reduce((q, c) => q + HEAD + streamPlan(c, th).height + 2, 0) + HEAD + e.height;
+            if (total <= avail && (!best || e.height < best.e.height)) best = { th, e };
+          }
+        if (!best) throw new Error("poster: capabilities do not fit on one A3");
+        const { th, e } = best;
+        // header: title + filled-in name and date
+        oneLine(K.labels[P].posterTitle, { x: MG, y: MG, w: 200, f: "b", size: 16, color: K.colors["Learning & Teaching"].dark });
+        if (S) oneLine(`${K.labels[S].posterTitle}  ·  HERM ${M.version}`, { x: MG, y: MG + 7, w: 200, size: 8, color: K.muted });
+        [
+          ["name", name, 95],
+          ["date", date, 80],
+        ].forEach(([k, v, w], i) => {
+          const x = MG + 215 + i * 105,
+            l = `${K.labels[P][k]}${S ? " / " + K.labels[S][k] : ""}`,
+            vx = x + tw(pdfSafe(l), FS.r, 6) + 3;
+          oneLine(l, { x, y: MG + 3, w: 60, size: 6, color: K.muted });
+          doc.setLineWidth(0.4 * PT).setDrawColor(K.ink).line(x, MG + 8.5, x + w, MG + 8.5);
+          oneLine(v, { x: vx, y: MG + 4, w: x + w - vx, f: "b", size: 10, min: 6, color: K.ink });
+        });
+        let y = MG + HEADER;
+        for (const ch of chains) {
+          heading(ch, ch.en, y);
+          y += HEAD;
+          stream(ch, y, th);
+          y += streamPlan(ch, th).height + 2;
+        }
+        heading(ena, "Enabling", y);
+        y += HEAD;
+        e.placed.forEach(({ o, c, y: oy, h }) => box(o, MG + c * (e.bw + GAP), y + oy, e.bw, h, e.tpr, th));
+        oneLine(`HERM ${M.version} Business Reference Model · CC BY-NC-SA 4.0 · CAUDIT / EDUCAUSE / UCISA / EUNIS  ·  ${footer}`, {
+          x: MG,
+          y: 297 - MG,
+          w: W2,
+          size: 5.5,
+          color: K.muted,
+        });
+        return doc;
+      }
+      // END A3 POSTER
+      function exportPosterPdf() {
+        const lib = window.jspdf;
+        if (!lib) {
+          alert(T.noPdf);
+          return;
+        }
+        const [P, S] = order();
+        drawPosterPdf(lib, {
+          P,
+          S,
+          sel: cur.codes,
+          name: curName(),
+          date: today(),
+          footer: `${T.pdfTitle}: ${T.pdfCount(cur.codes.size)}`,
+        }).save(fileName("pdf", "A3"));
       }
       render();
     </script>
